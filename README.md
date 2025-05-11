@@ -1,143 +1,115 @@
 # Qwen2-0.5B Fine-tuning for Drone Commands
 
-This repository contains Docker setup for fine-tuning the Qwen2-0.5B model on drone command data to create a specialized model that can process natural language instructions and convert them to drone control commands.
+This repository contains a complete Docker setup for fine-tuning the Qwen2-0.5B model on drone command data. The model will learn to process natural language instructions and convert them to drone control commands.
 
-## Project Structure
+## Features
 
-```
-# Project Structure for Qwen2-0.5B Fine-tuning
-
-```
-qwen2-drone-finetune/
-├── Dockerfile                  # Container definition
-├── docker-compose.yml          # Docker Compose configuration
-├── create_dataset.py           # Dataset creation script
-├── scripts/
-│   ├── train.py                # Fine-tuning script
-│   ├── inference.py            # Testing script
-│   ├── run_finetuning.sh       # Main entrypoint
-│   └── preprocess.py           # Dataset preprocessing
-├── data/                       # Will contain dataset
-└── outputs/                    # Will contain fine-tuned model
-```
-
-## Setup Process
-
-1. Create the dataset (run once)
-2. Build and run the Docker container for fine-tuning
-3. Test the fine-tuned model
-
-The setup will automatically:
-1. Generate the drone commands dataset
-2. Fine-tune Qwen2-0.5B using parameter-efficient methods
-3. Save the model for inference
-```
+- Automatic dataset generation from drone command templates
+- Parameter-efficient fine-tuning using LoRA
+- Memory-efficient training with 8-bit quantization
+- GPU acceleration with NVIDIA Docker
+- Interactive testing interface
 
 ## Prerequisites
 
-- NVIDIA GPU with at least 8GB of VRAM
+- NVIDIA GPU with CUDA support (8GB+ VRAM recommended)
 - Docker and Docker Compose
 - NVIDIA Container Toolkit installed
 
-## Setup
-
-1. Clone this repository
-2. Place your drone command dataset in the `data/` directory (or use the included script)
-3. Build and run the Docker container
-
 ## Quick Start
 
-### 1. Generate the Dataset
-
-If you have the `paste.txt` file in the data directory, you can generate the dataset with:
+1. **Setup the project**
 
 ```bash
-mkdir -p data
-python3 data/paste.txt > data/drone_commands_raw.json
+# Clone this repository
+git clone <repository-url>
+cd qwen2-drone-finetune
+
+# Run the setup script
+chmod +x setup.sh
+./setup.sh
 ```
 
-### 2. Start Fine-tuning
+2. **Start fine-tuning**
 
 ```bash
 docker-compose up
 ```
 
-This will:
-1. Build the Docker image
-2. Process your data into the appropriate format
-3. Fine-tune the Qwen2-0.5B model using efficient methods (LoRA and 8-bit quantization)
-4. Save the resulting model to the `outputs/` directory
-
-## Configuration
-
-You can customize the fine-tuning process by editing environment variables in the `docker-compose.yml` file:
-
-- `FINE_TUNING_EPOCHS`: Number of training epochs (default: 3)
-- `BATCH_SIZE`: Batch size per GPU (default: 4)
-- `GRAD_ACCUM_STEPS`: Gradient accumulation steps (default: 4)
-- `LEARNING_RATE`: Learning rate (default: 2e-4)
-- `USE_LORA_TRAINING`: Whether to use LoRA for efficient fine-tuning (default: true)
-- `USE_8BIT_QUANTIZATION`: Whether to use 8-bit quantization (default: true)
-- `WANDB_API_KEY`: Optional Weights & Biases API key for experiment tracking
-
-## Testing the Fine-tuned Model
-
-After fine-tuning completes, you can test your model using the provided inference script:
+3. **Test the fine-tuned model**
 
 ```bash
-# For LoRA fine-tuned model
 docker run --gpus all -it --rm \
   -v $(pwd)/outputs:/app/outputs \
   qwen2-finetune \
   python /app/scripts/inference.py --use_lora
+```
 
-# For full fine-tuned model
-docker run --gpus all -it --rm \
-  -v $(pwd)/outputs:/app/outputs \
-  qwen2-finetune \
-  python /app/scripts/inference.py
+## Dataset
+
+The dataset is automatically generated using patterns from drone commands. It includes:
+
+- Movement commands (forward, backward, left, right)
+- Rotation commands (turn, yaw, rotate)
+- Camera controls (take photo, record video)
+- Navigation commands (return to home, land)
+- System commands (check battery, status)
+- Emergency procedures
+
+Each command is formatted as an instruction pair:
+- Input: Natural language command (e.g., "Move forward 5 meters")
+- Output: Corresponding PX4 drone command (e.g., "PX4_CMD: navigator goto -n 5 0 0")
+
+## Configuration
+
+You can customize the fine-tuning process by editing the environment variables in `docker-compose.yml`:
+
+```yaml
+environment:
+  - FINE_TUNING_EPOCHS=3       # Number of training epochs
+  - BATCH_SIZE=4               # Batch size per GPU
+  - GRAD_ACCUM_STEPS=4         # Gradient accumulation steps
+  - LEARNING_RATE=2e-4         # Learning rate
+  - USE_LORA_TRAINING=true     # Use LoRA for efficient fine-tuning
+  - USE_8BIT_QUANTIZATION=true # Use 8-bit quantization
+```
+
+## Project Structure
+
+```
+.
+├── Dockerfile              # Container definition
+├── docker-compose.yml      # Docker Compose configuration
+├── create_dataset.py       # Dataset creation script
+├── setup.sh                # Setup script
+├── scripts/                # Training and inference scripts
+├── data/                   # Contains dataset
+└── outputs/                # Will contain fine-tuned model
 ```
 
 ## Advanced Usage
 
-### Fine-tuning on Custom Data
+### Custom Dataset
 
-To fine-tune on your own dataset, create a JSON file with the following structure:
+You can modify the dataset generation in `create_dataset.py` to include additional drone commands or different patterns.
 
-```json
-[
-  {
-    "instruction": "Your instruction here",
-    "output": "Expected model output"
-  },
-  ...
-]
-```
+### Exporting for Production
 
-### Exporting for Inference
-
-After fine-tuning, you can export the model for inference:
+After fine-tuning, you can merge the LoRA adapters with the base model for deployment:
 
 ```bash
-# Convert LoRA model to full model (optional)
 docker run --gpus all -it --rm \
   -v $(pwd)/outputs:/app/outputs \
   qwen2-finetune \
   python -c "from peft import PeftModel; from transformers import AutoModelForCausalLM; model = AutoModelForCausalLM.from_pretrained('Qwen/Qwen2-0.5B', device_map='auto', trust_remote_code=True); model = PeftModel.from_pretrained(model, '/app/outputs/final'); model.save_pretrained('/app/outputs/merged');"
 ```
 
-## Performance Considerations
-
-- **Memory Requirements**: With 8-bit quantization and LoRA, this should run on GPUs with 8GB VRAM.
-- **Training Time**: On an NVIDIA RTX 3090, expect 1-3 hours for full training.
-
 ## Troubleshooting
 
-- **Out of Memory Errors**: Reduce batch size or enable gradient accumulation
-- **Slow Training**: Make sure your GPU is properly recognized by the container
-- **Data Formatting Issues**: Check the format of your instruction dataset
+- **CUDA Out of Memory**: Reduce batch size or enable gradient accumulation
+- **Container not detecting GPU**: Ensure NVIDIA Container Toolkit is installed correctly
+- **Training too slow**: Try enabling DeepSpeed by adding `--deepspeed ds_config.json` to the training command
 
 ## License
 
 This project is provided for educational purposes. The Qwen2 model is subject to its own license terms.
-# Owen_finetune
