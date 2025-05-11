@@ -2,10 +2,13 @@ version: '3.8'
 
 services:
   qwen2-finetune:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ./data:/app/data
-      - ./outputs:/app/outputs
+      - ./data:/app/data  # Mount the data directory
+      - ./outputs:/app/outputs  # Mount the outputs directory
+      - ./scripts:/app/scripts  # Mount the scripts directory
     environment:
       - FINE_TUNING_EPOCHS=3
       - BATCH_SIZE=4
