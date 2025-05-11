@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  qwen2-finetune:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - FINE_TUNING_EPOCHS=3
+      - BATCH_SIZE=4
+      - GRAD_ACCUM_STEPS=4
+      - LEARNING_RATE=2e-4
+      - USE_LORA_TRAINING=true
+      - USE_8BIT_QUANTIZATION=true
+      # Uncomment and provide your W&B API key to use Weights & Biases
+      # - WANDB_API_KEY=your_api_key_here
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
