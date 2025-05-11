@@ -5,17 +5,32 @@ This repository contains Docker setup for fine-tuning the Qwen2-0.5B model on dr
 ## Project Structure
 
 ```
-.
-├── Dockerfile
-├── docker-compose.yml
-├── data/
-│   └── drone_commands_raw.json     # Your existing data
+# Project Structure for Qwen2-0.5B Fine-tuning
+
+```
+qwen2-drone-finetune/
+├── Dockerfile                  # Container definition
+├── docker-compose.yml          # Docker Compose configuration
+├── create_dataset.py           # Dataset creation script
 ├── scripts/
-│   ├── train.py                    # Main training script
-│   ├── preprocess.py               # Data preprocessing
-│   ├── inference.py                # Testing the model
-│   └── run_finetuning.sh           # Main entrypoint
-└── outputs/                        # Will contain fine-tuned model (created during training)
+│   ├── train.py                # Fine-tuning script
+│   ├── inference.py            # Testing script
+│   ├── run_finetuning.sh       # Main entrypoint
+│   └── preprocess.py           # Dataset preprocessing
+├── data/                       # Will contain dataset
+└── outputs/                    # Will contain fine-tuned model
+```
+
+## Setup Process
+
+1. Create the dataset (run once)
+2. Build and run the Docker container for fine-tuning
+3. Test the fine-tuned model
+
+The setup will automatically:
+1. Generate the drone commands dataset
+2. Fine-tune Qwen2-0.5B using parameter-efficient methods
+3. Save the model for inference
 ```
 
 ## Prerequisites
